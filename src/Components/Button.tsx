@@ -1,5 +1,5 @@
 import type { ComponentChildren, JSX, Ref } from "preact";
-import { cn } from "../Utils/classnames";
+import { cn } from "../Utils/ClassNames";
 import Icon, { IconName } from "./Icon";
 import doSwitch from "../Utils/SwitchExpression";
 
