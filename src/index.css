@@ -1,0 +1,17 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+@import url("./Assets/Fonts/Inter/inter.css");
+
+:root {
+  font-size: 16px;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  width: 100lvw;
+  height: 100lvh;
+  overflow: hidden;
+}
