@@ -6,6 +6,13 @@ import Icon from "./Components/Icon";
 import { useState } from "preact/hooks";
 import doSwitch from "./Utils/SwitchExpression";
 
+enum ShirtSize {
+  P,
+  M,
+  G,
+  GG,
+}
+
 interface Rect {
   x: number;
   y: number;
@@ -14,6 +21,13 @@ interface Rect {
 }
 
 function App() {
+  const [processQueue, setProcessQueue] = useState<ShirtSize[]>([
+    ShirtSize.G,
+    ShirtSize.M,
+    ShirtSize.GG,
+    ShirtSize.P,
+  ]);
+
   const [rects, setRects] = useState<Rect[]>([
     { x: 10, y: 10, width: 50, height: 10 },
     { x: 10, y: 20, width: 50, height: 20 },
@@ -54,29 +68,27 @@ function App() {
         <div class="flex flex-col gap-1 h-full grow">
           <label class="text-sm">Fila de processamento</label>
           <section class="border border-grey-800 shadow-pixel grow overflow-y-scroll">
-            {(["M", "G", "P", "GG", "M", "P", "M", "M", "G"] as const).map(
-              (size, i) => {
-                return (
-                  <div
-                    key={i}
-                    class="px-4 py-1 hover:bg-grey-200 flex gap-2 items-center group"
-                  >
-                    <span class="grow">
-                      {i + 1}. Tamanho {size}
-                    </span>
-                    <div class="invisible group-hover:visible">
-                      <IconButton iconName="ArrowUp" buttonSize="small" />
-                      <IconButton iconName="ArrowDown" buttonSize="small" />
-                      <IconButton
-                        iconName="Delete"
-                        buttonSize="small"
-                        class="ml-1"
-                      />
-                    </div>
+            {processQueue.map((size, i) => {
+              return (
+                <div
+                  key={i}
+                  class="px-4 py-1 hover:bg-grey-200 flex gap-2 items-center group"
+                >
+                  <span class="grow">
+                    {i + 1}. Tamanho {size}
+                  </span>
+                  <div class="invisible group-hover:visible">
+                    <IconButton iconName="ArrowUp" buttonSize="small" />
+                    <IconButton iconName="ArrowDown" buttonSize="small" />
+                    <IconButton
+                      iconName="Delete"
+                      buttonSize="small"
+                      class="ml-1"
+                    />
                   </div>
-                );
-              }
-            )}
+                </div>
+              );
+            })}
           </section>
           <label class="text-sm">Processo atual</label>
           <section class="border border-grey-800 shadow-pixel ">
