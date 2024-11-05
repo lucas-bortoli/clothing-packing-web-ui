@@ -2,6 +2,16 @@ const BASE_URL = `${location.protocol}//${location.hostname}:8000`;
 
 export type ShirtSize = "P" | "M" | "G" | "GG";
 
+export interface Rect {
+  /** Identificador de qual peça este retângulo pertence */
+  clothingId: string;
+
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface TableState {
   /** ID do pedido/mesa */
   orderId: string;
@@ -9,16 +19,14 @@ export interface TableState {
   width: number;
   height: number;
 
-  /** Lista de todos os retângulos dispostos na mesa */
-  rects: {
-    /** Identificador de qual peça este retângulo pertence */
-    clothingId: string;
+  /** Lista de todos os retângulos dispostos na mesa pelo algoritmo Max Rects */
+  maxRects: Rect[];
 
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }[];
+  /** Lista de todos os retângulos dispostos na mesa pelo algoritmo Skyline */
+  skyline: Rect[];
+
+  /** Lista de todos os retângulos dispostos na mesa pelo algoritmo Guillotine */
+  guillotine: Rect[];
 }
 
 export const table = {

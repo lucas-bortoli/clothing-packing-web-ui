@@ -65,7 +65,7 @@ interface IconProps extends JSX.HTMLAttributes<HTMLImageElement> {
 
 export default function Icon(props: IconProps) {
   const size = props.size ?? 16;
-
+  const style = (props.style ?? {}) as object;
   return (
     <img
       {...props}
@@ -75,6 +75,7 @@ export default function Icon(props: IconProps) {
       style={{
         fontSize: `${size}px`,
         height: `${size}px`,
+        ...style,
       }}
     />
   );

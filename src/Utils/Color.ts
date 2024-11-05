@@ -29,7 +29,11 @@ export default class Color {
   }
 
   // Method to convert HSL to RGB
-  private static hslToRgb(h: number, s: number, l: number): { r: number, g: number, b: number } {
+  private static hslToRgb(
+    h: number,
+    s: number,
+    l: number
+  ): { r: number; g: number; b: number } {
     h /= 360;
     s /= 100;
     l /= 100;
@@ -63,14 +67,14 @@ export default class Color {
   }
 
   // Method to convert the Color instance to CSS format
-  toCss(format: 'rgb' | 'rgba' | 'hsl' | 'hsla'): string {
-    if (format === 'rgb') {
+  toCss(format: "rgb" | "rgba" | "hsl" | "hsla"): string {
+    if (format === "rgb") {
       return `rgb(${this.r}, ${this.g}, ${this.b})`;
-    } else if (format === 'rgba') {
+    } else if (format === "rgba") {
       return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.a})`;
-    } else if (format === 'hsl' || format === 'hsla') {
+    } else if (format === "hsl" || format === "hsla") {
       const { h, s, l } = Color.rgbToHsl(this.r, this.g, this.b);
-      if (format === 'hsl') {
+      if (format === "hsl") {
         return `hsl(${h}, ${s}%, ${l}%)`;
       } else {
         return `hsla(${h}, ${s}%, ${l}%, ${this.a})`;
@@ -87,16 +91,23 @@ export default class Color {
     const b = color.b / 255;
 
     // Apply the gamma correction to convert sRGB to linear RGB
-    const rLinear = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-    const gLinear = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-    const bLinear = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+    const rLinear =
+      r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+    const gLinear =
+      g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+    const bLinear =
+      b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
 
     // Calculate the relative luminance
     return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
   }
 
   // Method to convert RGB to HSL
-  private static rgbToHsl(r: number, g: number, b: number): { h: number, s: number, l: number } {
+  private static rgbToHsl(
+    r: number,
+    g: number,
+    b: number
+  ): { h: number; s: number; l: number } {
     r /= 255;
     g /= 255;
     b /= 255;
@@ -113,10 +124,18 @@ export default class Color {
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
       switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
-        default: h = 0; break;
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+        default:
+          h = 0;
+          break;
       }
 
       h /= 6;
@@ -127,6 +146,46 @@ export default class Color {
       s: Math.round(s * 100),
       l: Math.round(l * 100),
     };
+  }
+
+  // Method to adjust brightness
+  adjustBrightness(factor: number): Color {
+    const r = Math.min(255, Math.max(0, this.r * factor));
+    const g = Math.min(255, Math.max(0, this.g * factor));
+    const b = Math.min(255, Math.max(0, this.b * factor));
+    return new Color(r, g, b, this.a);
+  }
+
+  // Method to adjust contrast
+  adjustContrast(scale: number): Color {
+    const midpoint = 128;
+    const r = Math.min(
+      255,
+      Math.max(0, (this.r - midpoint) * scale + midpoint)
+    );
+    const g = Math.min(
+      255,
+      Math.max(0, (this.g - midpoint) * scale + midpoint)
+    );
+    const b = Math.min(
+      255,
+      Math.max(0, (this.b - midpoint) * scale + midpoint)
+    );
+    return new Color(r, g, b, this.a);
+  }
+
+  // Method to adjust hue
+  adjustHue(degrees: number): Color {
+    const { h, s, l } = Color.rgbToHsl(this.r, this.g, this.b);
+    const newHue = (h + degrees) % 360;
+    return Color.fromHsl(newHue, s, l);
+  }
+
+  // Method to adjust luminance
+  adjustLuminance(targetLuminance: number): Color {
+    const { l } = Color.rgbToHsl(this.r, this.g, this.b);
+    const scale = targetLuminance / l;
+    return this.adjustBrightness(scale);
   }
 }
 
@@ -143,14 +202,16 @@ export function generateRandomPastelColor(key: string): Color {
   const hash = hashStringToNumber(key);
 
   // Use the hash to generate random RGB values between 128 and 255 for pastel colors
-  const r = 128 + (hash & 0xFF) % 128;
-  const g = 128 + ((hash >> 8) & 0xFF) % 128;
-  const b = 128 + ((hash >> 16) & 0xFF) % 128;
+  const r = 128 + ((hash & 0xff) % 128);
+  const g = 128 + (((hash >> 8) & 0xff) % 128);
+  const b = 128 + (((hash >> 16) & 0xff) % 128);
 
   return Color.fromRgb(r, g, b);
 }
 
-export function determineTextColorFromBackground(backgroundColor: Color): "light-text" | "dark-text" {
+export function determineTextColorFromBackground(
+  backgroundColor: Color
+): "light-text" | "dark-text" {
   // Calculate the relative luminance of the background color
   const luminance = backgroundColor.calculateLuminance(backgroundColor);
 
