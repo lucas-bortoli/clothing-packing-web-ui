@@ -234,6 +234,23 @@ function App() {
               })}
             </div>
             <footer class="flex gap-1">
+              <IconButton
+                iconName="Refresh"
+                disabled={areControlsDisabled}
+                onClick={function rotate() {
+                  setVisibleAlgos((v) => {
+                    const t = new Set<Algorithm>();
+                    if (v.has(Algorithm.MaxRects)) {
+                      t.add(Algorithm.Skyline);
+                    } else if (v.has(Algorithm.Skyline)) {
+                      t.add(Algorithm.Guillotine);
+                    } else if (v.has(Algorithm.Guillotine)) {
+                      t.add(Algorithm.MaxRects);
+                    }
+                    return t;
+                  });
+                }}
+              />
               {algos.map((algo) => {
                 function toggle() {
                   setVisibleAlgos((v) => {
@@ -246,14 +263,7 @@ function App() {
                   });
                 }
                 return (
-                  <Button
-                    key={algo.algoName}
-                    onClick={toggle}
-                    disabled={areControlsDisabled}
-                    style={{
-                      fontWeight: visibleAlgos.has(algo.algo) ? "bold" : "normal",
-                    }}
-                  >
+                  <Button key={algo.algoName} onClick={toggle} disabled={areControlsDisabled}>
                     {visibleAlgos.has(algo.algo) && <Icon name="Check" />}
                     <span
                       class="inline-block h-4 w-4"
