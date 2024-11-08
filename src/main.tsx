@@ -33,11 +33,12 @@ function App() {
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [isMutationPending, setIsMutationPending] = useState(false);
 
-  const table = useTable(currentOrderId, 100, 100);
+  const [tableWidth, tableHeight] = [200, 150];
+  const table = useTable(currentOrderId, tableWidth, tableHeight);
 
   async function createNewTable() {
     setIsMutationPending(true);
-    const orderId = await apiClient.table.create(100, 100);
+    const orderId = await apiClient.table.create(tableWidth, tableHeight);
     setCurrentOrderId(orderId);
     setIsMutationPending(false);
   }
@@ -173,7 +174,12 @@ function App() {
         return (
           <div class="flex flex-col gap-1">
             <label class="text-sm">Mesa de corte</label>
-            <div class="relative box-content aspect-[3/2] w-full border border-grey-800">
+            <div
+              class="relative box-content w-full border border-grey-800"
+              style={{
+                aspectRatio: `${table.tableDimensions.width} / ${table.tableDimensions.height}`,
+              }}
+            >
               {algos.map((algo) => {
                 if (!visibleAlgos.has(algo.algo)) return;
 
@@ -183,30 +189,37 @@ function App() {
                     class="absolute left-0 top-0 h-full w-full overflow-clip"
                     style={{ opacity: 1 / visibleAlgos.size }}
                   >
-                    {algo.rects.map((rect, i) => (
-                      <div
-                        key={i}
-                        class="absolute border-2 border-rustic-red-400"
-                        style={{
-                          width: rect.width,
-                          height: rect.height,
-                          top: rect.y,
-                          left: rect.x,
-                          backgroundColor: Color.fromRgb(
-                            algo.friendlyColor[0],
-                            algo.friendlyColor[1],
-                            algo.friendlyColor[2],
-                          ).toCss("hsl"),
-                          borderColor: Color.fromRgb(
-                            algo.friendlyColor[0],
-                            algo.friendlyColor[1],
-                            algo.friendlyColor[2],
-                          )
-                            .adjustBrightness(0.5)
-                            .toCss("hsl"),
-                        }}
-                      />
-                    ))}
+                    {algo.rects.map((rect, i) => {
+                      const xNormalized = rect.x / table.tableDimensions.width;
+                      const widthNormalized = rect.width / table.tableDimensions.width;
+                      const yNormalized = rect.y / table.tableDimensions.height;
+                      const heightNormalized = rect.height / table.tableDimensions.height;
+
+                      return (
+                        <div
+                          key={i}
+                          class="absolute border-2 border-rustic-red-400"
+                          style={{
+                            width: (widthNormalized * 100).toFixed(2) + "%",
+                            height: (heightNormalized * 100).toFixed(2) + "%",
+                            top: (yNormalized * 100).toFixed(2) + "%",
+                            left: (xNormalized * 100).toFixed(2) + "%",
+                            backgroundColor: Color.fromRgb(
+                              algo.friendlyColor[0],
+                              algo.friendlyColor[1],
+                              algo.friendlyColor[2],
+                            ).toCss("hsl"),
+                            borderColor: Color.fromRgb(
+                              algo.friendlyColor[0],
+                              algo.friendlyColor[1],
+                              algo.friendlyColor[2],
+                            )
+                              .adjustBrightness(0.5)
+                              .toCss("hsl"),
+                          }}
+                        />
+                      );
+                    })}
                   </main>
                 );
               })}
