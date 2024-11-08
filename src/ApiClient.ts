@@ -34,19 +34,19 @@ export const table = {
    * Cria um pedido novo, retornando seu id.
    */
   create: async (tableWidth: number, tableHeight: number): Promise<string> => {
-    const response = await fetch(`${BASE_URL}/api/pedido/new`, {
+    const response = await fetch(`${BASE_URL}/table/new`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        w: tableWidth,
-        h: tableHeight,
+        width: tableWidth,
+        height: tableHeight,
       }),
     });
-    const responseBody = await response.json();
+    const responseBody = JSON.parse(await response.json());
 
-    return responseBody.id;
+    return responseBody.id.toString();
   },
 
   /**
@@ -54,17 +54,17 @@ export const table = {
    * @param size Tamanho da roupa.
    */
   addShirt: async (orderId: string, size: ShirtSize): Promise<void> => {
-    const response = await fetch(`${BASE_URL}/api/pedido/${orderId}/add`, {
+    const response = await fetch(`${BASE_URL}/table/${orderId}/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         size: size,
-        type: "polo", // ??????
+        type: size, // ??????
       }),
     });
-    const responseBody = await response.json();
+    const responseBody = JSON.parse(await response.json());
 
     return responseBody.id;
   },
@@ -74,7 +74,22 @@ export const table = {
    * @param orderId O identificador do pedido ao qual a mesa de corte pertence.
    */
   getState: async (orderId: string): Promise<TableState> => {
-    const response = await fetch(`${BASE_URL}/api/pedido/${orderId}`);
-    return response.json();
+    const x = JSON.parse(await fetch(`${BASE_URL}/table/${orderId}`).then((r) => r.json()));
+    function screw(fucked: string): TableState["guillotine"] {
+      return JSON.parse(fucked.replace(/\(/g, "[").replace(/\)/g, "]").replace(/'/g, '"')).map(
+        (v: any[]) => ({
+          clothingId: v[0].toString(),
+          x: v[1],
+          y: v[2],
+          width: v[3],
+          height: v[4],
+        }),
+      );
+    }
+    x.maxRects = x.maxRects === null ? [] : screw(x.maxRects);
+    x.guillotine = x.guillotine === null ? [] : screw(x.guillotine);
+    x.skyline = x.skyline === null ? [] : screw(x.skyline);
+
+    return x;
   },
 };

@@ -1,18 +1,22 @@
 import { render } from "preact";
 import { useState } from "preact/hooks";
-import { Rect, ShirtSize } from "./ApiClient";
+import * as apiClient from "./ApiClient";
+import { ShirtSize } from "./ApiClient";
 import Button, { IconButton } from "./Components/Button";
 import Icon from "./Components/Icon";
 import "./index.css";
+import { useTable } from "./Table";
 import Color from "./Utils/Color";
 import Run from "./Utils/Run";
-import * as apiClient from "./ApiClient";
+
+//@ts-expect-error
+window.apiClient = apiClient;
 
 const ShirtSizes = [
   { iconName: "SizeP", size: "P" satisfies ShirtSize },
   { iconName: "SizeM", size: "M" satisfies ShirtSize },
   { iconName: "SizeG", size: "G" satisfies ShirtSize },
-  { iconName: "SizeGG", size: "GG" satisfies ShirtSize },
+  // { iconName: "SizeGG", size: "GG" satisfies ShirtSize },
 ] as const;
 
 enum Algorithm {
@@ -22,54 +26,40 @@ enum Algorithm {
 }
 
 function App() {
-  const [processQueue, setProcessQueue] = useState<ShirtSize[]>(["G", "M", "GG", "P"]);
-
-  const [rectsMaxRects, setRectsMaxRects] = useState<Rect[]>([
-    { clothingId: "a", x: 10, y: 10, width: 50, height: 10 },
-    { clothingId: "a", x: 10, y: 20, width: 50, height: 20 },
-    { clothingId: "a", x: 10, y: 40, width: 50, height: 50 },
-    { clothingId: "a", x: 60, y: 40, width: 50, height: 50 },
-  ]);
-
-  const [rectsSkyline, setRectsSkyline] = useState<Rect[]>([
-    { clothingId: "a", x: 23, y: 75, width: 50, height: 35 },
-    { clothingId: "a", x: 91, y: 18, width: 50, height: 40 },
-    { clothingId: "a", x: 42, y: 59, width: 50, height: 48 },
-    { clothingId: "a", x: 13, y: 31, width: 50, height: 22 },
-  ]);
-
-  const [rectsGuillotine, setRectsGuillotine] = useState<Rect[]>([
-    { clothingId: "a", x: 67, y: 29, width: 50, height: 19 },
-    { clothingId: "a", x: 85, y: 51, width: 50, height: 41 },
-    { clothingId: "a", x: 31, y: 93, width: 50, height: 13 },
-    { clothingId: "a", x: 49, y: 17, width: 50, height: 62 },
-  ]);
-
   const [visibleAlgos, setVisibleAlgos] = useState<Set<Algorithm>>(
     new Set([Algorithm.Guillotine, Algorithm.MaxRects, Algorithm.Skyline]),
   );
 
-  const [currentOrder, setCurrentOrder] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [isMutationPending, setIsMutationPending] = useState(false);
-  async function refreshTableStatus() {
-    const state = await apiClient.table.getState(currentOrder!);
-    setRectsGuillotine(state.guillotine);
-    setRectsMaxRects(state.maxRects);
-    setRectsSkyline(state.skyline);
+
+  const table = useTable(currentOrderId, 100, 100);
+
+  async function createNewTable() {
+    setIsMutationPending(true);
+    const orderId = await apiClient.table.create(100, 100);
+    setCurrentOrderId(orderId);
+    setIsMutationPending(false);
   }
 
-  const areControlsDisabled = currentOrder === null || isMutationPending;
+  async function commitTable() {
+    setIsMutationPending(true);
+    setCurrentOrderId(null);
+    setIsMutationPending(false);
+  }
+
+  const areControlsDisabled = currentOrderId === null || isMutationPending;
 
   return (
     <div class="mx-auto flex h-full w-full max-w-screen-md select-none flex-col gap-2 p-2">
       <h1 class="text-2xl">Cloth Packing Web UI</h1>
       <hr />
       <div class="flex justify-between gap-1">
-        <Button disabled={currentOrder !== null} onClick={() => setCurrentOrder("TODO")}>
+        <Button disabled={currentOrderId !== null} onClick={createNewTable}>
           <Icon name="NewLayer" />
           Iniciar nova mesa
         </Button>
-        <Button disabled={areControlsDisabled} onClick={() => setCurrentOrder(null)}>
+        <Button disabled={areControlsDisabled} onClick={commitTable}>
           <Icon name="Build" />
           Confirmar mesa atual
         </Button>
@@ -85,18 +75,30 @@ function App() {
                   iconName={size.iconName}
                   disabled={areControlsDisabled}
                   class="w-full"
-                  onClick={function addIt() {
-                    setProcessQueue([...processQueue, size.size]);
-                  }}
+                  onClick={table.addToQueue.bind(null, size.size)}
                 />
               );
             })}
           </section>
         </div>
-        <div class="flex h-full grow flex-col gap-1">
+        <div class="flex h-full flex-1 grow flex-col gap-1">
+          <label class="text-sm">Processo atual</label>
+          <section class="border border-grey-800 shadow-pixel">
+            <div class="group flex items-center gap-2 px-4 py-1 hover:bg-grey-200">
+              {Run(() => {
+                if (table.currentProcessingItem === null) {
+                  return (
+                    <span class="grow italic text-grey-700">Nenhum item sendo processado</span>
+                  );
+                } else {
+                  return <span class="grow">Tamanho {table.currentProcessingItem}</span>;
+                }
+              })}
+            </div>
+          </section>
           <label class="text-sm">Fila de processamento</label>
           <section class="grow overflow-y-scroll border border-grey-800 shadow-pixel">
-            {processQueue.map((size, i) => {
+            {table.processingQueue.map((size, i) => {
               return (
                 <div key={i} class="group flex items-center gap-2 px-4 py-1 hover:bg-grey-200">
                   <span class="grow">
@@ -107,52 +109,28 @@ function App() {
                       iconName="ArrowUp"
                       buttonSize="small"
                       disabled={areControlsDisabled}
-                      onClick={function moveUp() {
-                        if (i === 0) return;
-                        const newArr = processQueue.slice();
-                        const a = newArr[i];
-                        const b = newArr[i - 1];
-                        newArr[i] = b;
-                        newArr[i - 1] = a;
-                        setProcessQueue(newArr);
-                      }}
+                      onClick={table.queueMoveItem.bind(null, i, "up")}
                     />
                     <IconButton
                       iconName="ArrowDown"
                       buttonSize="small"
                       disabled={areControlsDisabled}
-                      onClick={function moveDown() {
-                        if (i === processQueue.length - 1) return;
-                        const newArr = processQueue.slice();
-                        const a = newArr[i];
-                        const b = newArr[i + 1];
-                        newArr[i] = b;
-                        newArr[i + 1] = a;
-                        setProcessQueue(newArr);
-                      }}
+                      onClick={table.queueMoveItem.bind(null, i, "down")}
                     />
                     <IconButton
                       iconName="Delete"
                       buttonSize="small"
                       class="ml-1"
                       disabled={areControlsDisabled}
-                      onClick={function deleteIt() {
-                        setProcessQueue((qs) => qs.filter((_, j) => j !== i));
-                      }}
+                      onClick={table.queueDeleteItem.bind(null, i)}
                     />
                   </div>
                 </div>
               );
             })}
           </section>
-          <label class="text-sm">Processo atual</label>
-          <section class="border border-grey-800 shadow-pixel">
-            <div class="group flex items-center gap-2 px-4 py-1 hover:bg-grey-200">
-              <span class="grow">Tamanho GG (10%)</span>
-            </div>
-          </section>
         </div>
-        <div class="flex h-full grow flex-col gap-1">
+        <div class="flex h-full flex-1 grow flex-col gap-1">
           <label class="text-sm">Peças na mesa</label>
           <section class="grow overflow-y-scroll border border-grey-800 shadow-pixel">
             {(["M", "G", "P", "GG", "M", "P", "M", "M", "G"] as const).map((size, i) => {
@@ -174,19 +152,19 @@ function App() {
         const algos = [
           {
             algo: Algorithm.MaxRects,
-            rects: rectsMaxRects,
+            rects: table.rectsMaxRects,
             algoName: "Max Rects",
             friendlyColor: [255, 0, 0],
           },
           {
             algo: Algorithm.Skyline,
-            rects: rectsSkyline,
+            rects: table.rectsSkyline,
             algoName: "Skyline",
             friendlyColor: [0, 255, 0],
           },
           {
             algo: Algorithm.Guillotine,
-            rects: rectsGuillotine,
+            rects: table.rectsGuillotine,
             algoName: "Guillotine",
             friendlyColor: [0, 0, 255],
           },
